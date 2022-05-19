@@ -1,2 +1,2 @@
 # CROL
-Cloid resource optimization using reinforcement learning
+Cloud resource optimization using reinforcement learning
