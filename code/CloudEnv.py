@@ -4,6 +4,8 @@ from collections import OrderedDict
 import numpy as np
 
 class CpuMem():
+    def __init__(self, cpumem):
+        self.__init__(cpumem[0], cpumem[1])
     def __init__(self, cpu, mem):
         self.cpu = cpu
         self.mem = mem
@@ -23,26 +25,25 @@ class CpuMem():
         return self
 
 STOP = 2048
-dtype = np.float64
-
-n = 300 # number of vms
-m = 30 # number of servers
 
 class CloudEnv(gym.Env):
-    def __init__(self):
+    def __init__(self, n=300, m=30, dtype=np.float64):
+        self.n = n
+        self.m = m
+        self.dtype = dtype
         self.reset()
         self.action_space = MultiDiscrete([n, m])
         self.observation_space = Dict(
-            servers=Box(low=0, high=STOP, shape=(m, 2), dtype=dtype),
-            vms=Box(low=0, high=STOP, shape=(n, 2), dtype=dtype),
+            servers=Box(low=0, high=STOP, shape=(m, 2), dtype=self.dtype),
+            vms=Box(low=0, high=STOP, shape=(n, 2), dtype=self.dtype),
         )
 
     def get_state(self):
-        vms = np.zeros((n, 2), dtype=dtype)
-        for i in range(n):
+        vms = np.zeros((self.n, 2), dtype=self.dtype)
+        for i in range(self.n):
             vms[i] = self.vms[i].get_arr()
-        servers = np.zeros((m, 2), dtype=dtype)
-        for i in range(m):
+        servers = np.zeros((self.m, 2), dtype=self.dtype)
+        for i in range(self.m):
             servers[i] = self.servers[i].get_arr()
         return OrderedDict([
             ('servers', servers),
@@ -51,7 +52,7 @@ class CloudEnv(gym.Env):
 
     def get_reward(self):
         ans = 0.0
-        for i in range(n):
+        for i in range(self.n):
             if self.vms[i].cpu != STOP:
                 ans -= 1
         lc = [server.get_lcc() for server in self.servers]
@@ -93,9 +94,9 @@ class CloudEnv(gym.Env):
     def reset(self):
         self.vms = []
         self.servers = []
-        for i in range(n):
+        for i in range(self.n):
             self.vms.append(CpuMem(1, 2))
-        for i in range(m):
+        for i in range(self.m):
             self.servers.append(CpuMem(16, 32))
         self.was = 0
         return self.get_state()
