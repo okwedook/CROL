@@ -4,13 +4,14 @@ from collections import OrderedDict
 import numpy as np
 
 class CpuMem():
-    def __init__(self, cpumem):
-        self.__init__(cpumem[0], cpumem[1])
     def __init__(self, cpu, mem):
         self.cpu = cpu
         self.mem = mem
         self._scpu = cpu
         self._smem = mem
+    @classmethod
+    def fromCpuMem(cls, cpumem):
+        return cls(cpumem[0], cpumem[1])
     def get_lcc(self):
         return self.cpu / self._scpu
     def get_lmm(self):
@@ -25,6 +26,13 @@ class CpuMem():
         return self
 
 STOP = 2048
+
+def calculate_evenness(servers):
+    lc = [server.get_lcc() for server in servers]
+    lm = [server.get_lmm() for server in servers]
+    D = lambda v: np.std(v)
+    return (1 / (D(lc) + 1) + 1 / (D(lm) + 1)) / 2
+
 
 class CloudEnv(gym.Env):
     def __init__(self, n=300, m=30, dtype=np.float64):
@@ -49,19 +57,19 @@ class CloudEnv(gym.Env):
             ('servers', servers),
             ('vms', vms),
         ])
+    
+    def update_score(self, score):
+        reward = score - self.was
+        self.was = score
+        return reward
 
     def get_reward(self):
         ans = 0.0
         for i in range(self.n):
             if self.vms[i].cpu != STOP:
                 ans -= 1
-        lc = [server.get_lcc() for server in self.servers]
-        lm = [server.get_lmm() for server in self.servers]
-        D = lambda v: np.std(v)
-        ans += (1 / (D(lc) + 1) + 1 / (D(lm) + 1)) / 2
-        reward = ans - self.was
-        self.was = ans
-        return reward
+        ans += calculate_evenness(self.servers)
+        return self.update_score(ans)
     
     def can_move(self, vm_index, server_index):
         vm = self.vms[vm_index]
