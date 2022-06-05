@@ -1,3 +1,0 @@
-[submodule "ray"]
-	path = ray
-	url = https://github.com/ray-project/ray.git
